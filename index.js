@@ -1,12 +1,12 @@
 // Intercom agent
 
-var bodyParser = require('body-parser')
+//var bodyParser = require('body-parser')
 var http = require('http')
 var exp = require('express');
 var mqtt = require('mqtt')
 
 var app = exp();
-app.use(bodyParser.urlencoded({ extended: true}));
+//app.use(bodyParser.urlencoded({ extended: true}));
 
 var options = {
 	host:"localhost",
@@ -27,14 +27,14 @@ var agent = mqtt.connect(options)
 agent.on("connect", () => {
 	console.log("Succefully connected")
 })
-// Main function to handle POST
-app.post('/*', (req, res) => {
-	const body = req.params
-        console.log("Post request : ", body)
-    //    console.log(req)
+// Main function to handle GET request
+app.get('/*', (req, res) => {
+        const body = req.params['0']
+//      console.log("GET request : ", body)
+        console.log(body)
         res.send("OK")
         try {
-        	agent.publish("634555/intercom_call/value","true")
+        	agent.publish("bridge/intercom_call/value", body)
         }
         catch (err) {
         	console.log(err)
