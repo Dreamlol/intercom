@@ -46,9 +46,10 @@ app.get('/*', (req, res) => {
 
 client.subscribe('bridge/intercom_answer/command/set-value');
 client.on("message", (topic, payload) => {
-        console.log("Get message via wss: ", payload)
+        const obj = JSON.parse(payload)
+        console.log("Get message via wss: ", obj)
         request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
                 console.log('statusCode:', res && res.statusCode)
                 })
-        
+        client.end()
 })
