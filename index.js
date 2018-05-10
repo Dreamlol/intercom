@@ -4,6 +4,7 @@
 var http = require('http')
 var exp = require('express');
 var mqtt = require('mqtt')
+var request = require('request')
 
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
@@ -18,16 +19,16 @@ var options = {
 var server = app.listen(8080, () => {
         var host = server.address().address
         var port = server.address().port
-        console.log("Example app listening at http://%s:%s", host, port)
+        console.log("Start listening at http://%s:%s", host, port)
 
 })
 
 // Connect to local mqtt broker
-var agent = mqtt.connect(options)
-agent.on("connect", () => {
-	console.log("Succefully connected")
+var client = mqtt.connect(options)
+client.on("connect", () => {
+	console.log("Succefully connected to mqtt bridge")
 })
-// Main function to handle GET request
+// Main function to handle GET request and call to client
 app.get('/*', (req, res) => {
         const body = req.params['0']
 //      console.log("GET request : ", body)
@@ -41,3 +42,13 @@ app.get('/*', (req, res) => {
         }
 })
 
+// Send https request to switch door
+
+client.subscribe('bridge/intercom_answer/command/set-value');
+client.on("message", (topic, payload) => {
+        console.log("Get message via wss: ", payload)
+        request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
+                console.log('statusCode:', res && res.statusCode)
+                })
+        
+})
