@@ -6,7 +6,7 @@ var exp = require('express');
 var mqtt = require('mqtt')
 
 var app = exp();
-app.use(bodyParser.urlencoded({ extended: false}));
+app.use(bodyParser.urlencoded({ extended: true}));
 
 var options = {
 	host:"localhost",
@@ -28,9 +28,10 @@ agent.on("connect", () => {
 	console.log("Succefully connected")
 })
 // Main function to handle POST
-app.post('/api/', (req, res) => {
-	const body = req.body
+app.post('/*', (req, res) => {
+	const body = req.params
         console.log("Post request : ", body)
+    //    console.log(req)
         res.send("OK")
         try {
         	agent.publish("634555/intercom_call/value","true")
