@@ -1,10 +1,12 @@
 // Intercom agent
 
-
+var bodyParser = require('body-parser')
 var http = require('http')
 var exp = require('express');
-var app = exp();
 var mqtt = require('mqtt')
+
+var app = exp();
+app.use(bodyParser.urlencoded({ extended: false}));
 
 
 
@@ -27,14 +29,13 @@ agent.on("connect", () => {
 })
 
 app.post('/api/', (req, res) => {
-        console.log("Post method")
+	const body = req.body
+        console.log("Post request : ", body)
         res.send("OK")
         try {
         	agent.publish("634555/intercom_call/value","true")
         }
         catch (err) {
         	console.log(err)
-        }	
-        	        
-
+        }
 })
