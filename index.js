@@ -56,14 +56,16 @@ app.get('/*', (req, res) => {
 // TODO add certificate security and login/pass autorisation
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
-        const top = JSON.parse(topic)
         console.log("Get message via wss: %s from topic %s", obj, top)
-        if (topic === mqtt_topic["answer"] ) {
+        if (topic === mqtt_options.topic["answer"] ) {
                 request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
                         console.log('statusCode:', res && res.statusCode)
                 })  
         }
-})
+        else if(topic === mqtt_options.topic["snapshot"]){
+                //TODO add function to handle snapshot
+        }
+})      
 
 // Snapshot from camera and sent to client as a picture
 
