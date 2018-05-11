@@ -15,8 +15,18 @@ var mqtt_options = {
         topic:{"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
 
 }
-var url_options = {
+// URL for get picture from camera
+var url_options_snapshot = {
         'url': 'http://192.168.0.105/api/camera/snapshot?width=640&height=480&source=internal',
+        'auth': {
+            'user': 'admin',
+            'pass': 'admin',
+            'sendImmediately': false
+        }
+    };
+// URL for activate relay(open door)
+var url_options_answer = {
+        'url': 'http://192.168.0.105/api/switch/ctrl?switch=1&action=on',
         'auth': {
             'user': 'admin',
             'pass': 'admin',
@@ -45,6 +55,7 @@ app.get('/*', (req, res) => {
         const body = req.params['0']
         console.log(body)
         res.send("OK")
+        // TODO add condition
         try {
         	client.publish("bridge/intercom_call/value", body)
         }
@@ -59,7 +70,7 @@ client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         console.log("Get message via wss: %s from topic %s", obj, topic)
         if (topic === mqtt_options.topic["answer"] ) {
-                request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
+                request.get(url_options_answer, (err, res, body) => {
                         console.log('statusCode:', res && res.statusCode, "The door was open")
                 })  
         }
@@ -72,12 +83,11 @@ client.on("message", (topic, payload) => {
 
 //client.on("message", (topic, payload) => {
 //        const obj = JSON.parse(payload)
-function SendSnapshot(){
-        request.get(url_options, (err, res, body) => {
-        console.log('statusCode:', res && res.statusCode)
-        const buf = Buffer.from(body, "base64")
-  //      console.log(buf)
-        client.publish("bridge/intercom_snapshot/value", body)
-        console.log("Snapshot is sending");
+export function SendSnapshot(){
+        request.get(url_options_snapshot, (err, res, body) => {
+                console.log('statusCode:', res && res.statusCode)
+                const buf = Buffer.from(body, "base64")
+                client.publish("bridge/intercom_snapshot/value", body)
+                console.log("Snapshot is sending");
         })      
 }
