@@ -84,8 +84,8 @@ client.on("message", (topic, payload) => {
 //client.on("message", (topic, payload) => {
 //        const obj = JSON.parse(payload)
 function SendSnapshot(){
-		// url_options_snapshot.auth = auth;
-        request.get(Object.assign({}, url_options_snapshot, auth), (err, res, body) => {
+		url_options_snapshot.auth = auth;
+        request.get(url_options_snapshot, (err, res, body) => {
                 console.log('statusCode:', res && res.statusCode)
                 const buf = Buffer.from(body, "base64")
                 client.publish("bridge/intercom_snapshot/value", body)
