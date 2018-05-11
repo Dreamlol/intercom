@@ -35,7 +35,8 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        client.subscribe(mqtt_options.topic["answer", "snapshot"]);
+        client.subscribe(mqtt_options.topic["answer"]);
+        client.subscribe(mqtt_options.topic["snapshot"]);
         console.log("Succefully connected to mqtt bridge");
 })
 
@@ -59,7 +60,7 @@ client.on("message", (topic, payload) => {
         console.log("Get message via wss: %s from topic %s", obj, topic)
         if (topic === mqtt_options.topic["answer"] ) {
                 request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
-                        console.log('statusCode:', res && res.statusCode, "door was open")
+                        console.log('statusCode:', res && res.statusCode, "The door was open")
                 })  
         }
         else if(topic === mqtt_options.topic["snapshot"]){
@@ -75,7 +76,7 @@ function SendSnapshot(){
         request.get(url_options, (err, res, body) => {
         console.log('statusCode:', res && res.statusCode)
         const buf = Buffer.from(body, "base64")
-        console.log(buf)
+  //      console.log(buf)
         client.publish("bridge/intercom_snapshot/value", body)
         console.log("Snapshot is sending");
         })      
