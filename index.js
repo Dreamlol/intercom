@@ -56,7 +56,7 @@ app.get('/*', (req, res) => {
 // TODO add certificate security and login/pass autorisation
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
-        console.log("Get message via wss: %s from topic %s", obj, top)
+        console.log("Get message via wss: %s from topic %s", obj, topic)
         if (topic === mqtt_options.topic["answer"] ) {
                 request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
                         console.log('statusCode:', res && res.statusCode)
