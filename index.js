@@ -28,10 +28,15 @@ var url_options_snapshot = {
         'auth': null
     };
 // URL for activate relay(open door)
-var url_options_answer = {
+var url_options_open_door = {
         'url': 'http://192.168.0.105/api/switch/ctrl?switch=1&action=on',
         'auth': null
-    };
+	};
+
+var url_options_stop_ringing = {
+    'url': 'http://192.168.0.105/enu/trigger/stop_ringing',
+    'auth': null
+};
 
 // Starting web server for listen POST request
 var server = app.listen(8080, () => {
@@ -63,20 +68,26 @@ app.get('/*', (req, res) => {
         }
 })
 
-// Recieve message from client and send https request in order to switch door
+// Recieve message from client and send https request in order to switch door and goint to stream video/audio
 // TODO add certificate security and login/pass autorisation
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         console.log("Get message via wss: %s from topic %s", obj, topic)
-        if (topic === mqtt_options.topic["answer"] ) {
-				url_options_answer.auth = auth;
-                request.get(url_options_answer, (err, res, body) => {
+        if (topic === mqtt_options.topic["answer"] && obj === '1' ) {
+				url_options_open_door.auth = auth;
+                request.get(url_options_open_door, (err, res, body) => {
                         console.log('statusCode:', res && res.statusCode, "The door was open")
                 })  
-        }
+		}
+		else if(topic === mqtt_options.topic["answer"] && obj === '2'){
+			console.log("Client answered successfuly")
+			StopRinging()
+		}
         else if(topic === mqtt_options.topic["snapshot"]){
-                SendSnapshot();
-        }
+            SendSnapshot();
+		}
+		els
+		//Add get request to stop ringing if client answered
 })      
 
 // Snapshot from camera and sent to client as a picture
@@ -91,4 +102,11 @@ function SendSnapshot(){
                 client.publish("bridge/intercom_snapshot/value", body)
                 console.log("Snapshot is sending");
         })      
+}
+
+function StopRinging(){
+		url_options_stop_ringing.auth = auth;
+		request.get(url_options_stop_ringing, (err, res) => {
+			console.log(res)
+		})
 }
