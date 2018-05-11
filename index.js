@@ -8,10 +8,12 @@ var request = require('request');
 
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
-
+//var sub_topics = {"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
 var mqtt_options = {
 	host:"localhost",
-	port:1883
+        port:1883,
+        topic:{"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
+
 }
 var url_options = {
         'url': 'http://192.168.0.105/api/camera/snapshot?width=640&height=480&source=internal',
@@ -33,9 +35,8 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        const answer = client.subscribe('bridge/intercom_answer/command/set-value');
-        const snapshot = client.subscribe('bridge/intercom_snapshot/command/set-value');
-	console.log("Succefully connected to mqtt bridge");
+        client.subscribe(mqtt_options.topic["answer", "snapshot"]);
+        console.log("Succefully connected to mqtt bridge");
 })
 
 // Main function to handle GET request and call to client
@@ -57,7 +58,7 @@ client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         const top = JSON.parse(topic)
         console.log("Get message via wss: %s from topic %s", obj, top)
-        if (topic === answer ) {
+        if (topic === mqtt_topic["answer"] ) {
                 request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
                         console.log('statusCode:', res && res.statusCode)
                 })  
