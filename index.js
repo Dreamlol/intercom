@@ -59,7 +59,7 @@ client.on("message", (topic, payload) => {
         console.log("Get message via wss: %s from topic %s", obj, topic)
         if (topic === mqtt_options.topic["answer"] ) {
                 request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
-                        console.log('statusCode:', res && res.statusCode)
+                        console.log('statusCode:', res && res.statusCode, "door was open")
                 })  
         }
         else if(topic === mqtt_options.topic["snapshot"]){
