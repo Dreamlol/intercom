@@ -9,7 +9,7 @@ var request = require('request');
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
 
-var options = {
+var mqtt_options = {
 	host:"localhost",
 	port:1883
 }
@@ -31,15 +31,16 @@ var server = app.listen(8080, () => {
 })
 
 // Connect to local mqtt broker
-var client = mqtt.connect(options)
+var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-	console.log("Succefully connected to mqtt bridge")
+        const answer = client.subscribe('bridge/intercom_answer/command/set-value');
+        const snapshot = client.subscribe('bridge/intercom_snapshot/command/set-value');
+	console.log("Succefully connected to mqtt bridge");
 })
 
 // Main function to handle GET request and call to client
 app.get('/*', (req, res) => {
         const body = req.params['0']
-//      console.log("GET request : ", body)
         console.log(body)
         res.send("OK")
         try {
@@ -52,19 +53,19 @@ app.get('/*', (req, res) => {
 
 // Recieve message from client and send https request in order to switch door
 // TODO add certificate security and login/pass autorisation
-client.subscribe('bridge/intercom_answer/command/set-value');
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
-        console.log("Get message via wss: ", obj)
-        // add condition
-        request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
-                console.log('statusCode:', res && res.statusCode)
-                })
+        const top = JSON.parse(topic)
+        console.log("Get message via wss: %s from topic %s", obj, top)
+        if (topic === answer ) {
+                request.get("http://192.168.0.105/api/switch/ctrl?switch=1&action=on",(err, res, body) => {
+                        console.log('statusCode:', res && res.statusCode)
+                })  
+        }
 })
 
 // Snapshot from camera and sent to client as a picture
 
-client.subscribe('bridge/intercom_snapshot/command/set-value');
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         request.get(url_options, (err, res, body) => {
