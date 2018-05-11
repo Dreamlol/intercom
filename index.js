@@ -63,18 +63,20 @@ client.on("message", (topic, payload) => {
                 })  
         }
         else if(topic === mqtt_options.topic["snapshot"]){
-                //TODO add function to handle snapshot
+                SendSnapshot();
         }
 })      
 
 // Snapshot from camera and sent to client as a picture
 
-client.on("message", (topic, payload) => {
-        const obj = JSON.parse(payload)
+//client.on("message", (topic, payload) => {
+//        const obj = JSON.parse(payload)
+function SendSnapshot(){
         request.get(url_options, (err, res, body) => {
-                console.log('statusCode:', res && res.statusCode)
-                const buf = Buffer.from(body, "base64")
-            //    console.log(buf)
-                client.publish("bridge/intercom_snapshot/value", body)
-                })      
-})
+        console.log('statusCode:', res && res.statusCode)
+        const buf = Buffer.from(body, "base64")
+        console.log(buf)
+        client.publish("bridge/intercom_snapshot/value", body)
+        console.log("Snapshot is sending");
+        })      
+}
