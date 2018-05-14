@@ -6,6 +6,7 @@ var exp = require('express');
 var mqtt = require('mqtt');
 var request = require('request');
 var _ = require('lodash');
+var exec = require("child_process")
 
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
@@ -126,6 +127,7 @@ function StopRinging(){
 		})
 }
 
-//function CreateStream("path to binary file"){
-//
-//}
+async function CreateStream(peer_id){
+	const stdout = await exec('./webrtc-sendrecv --peer-id=%s', peer_id)
+	console.log(stdout)
+}
