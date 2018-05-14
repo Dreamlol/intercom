@@ -100,7 +100,7 @@ client.on("message", (topic, payload) => {
 // Snapshot from camera and sent to client as a picture
 function SendSnapshot(){
 	url_options_snapshot.auth = intercom_auth;
-        request.get(intercom_auth, (err, res, body) => {
+        request.get(url_options_snapshot, (err, res, body) => {
                 console.log('statusCode:', res && res.statusCode)
                 const buf = Buffer.from(body, "base64")
                 client.publish("bridge/intercom_snapshot/value", body)
