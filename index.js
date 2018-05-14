@@ -6,7 +6,7 @@ var exp = require('express');
 var mqtt = require('mqtt');
 var request = require('request');
 var _ = require('lodash');
-var exec = require("child_process")
+const { exec } = require('child_process');
 
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
@@ -128,6 +128,12 @@ function StopRinging(){
 }
 
 async function CreateStream(peer_id){
-	const stdout = await exec('./webrtc-sendrecv --peer-id=%s', peer_id)
-	console.log(stdout)
+	await exec("./webrtc-sendrecv --peer-id="+peer_id, (err, stdout, stderr) => {
+	if (err) {
+	return
+	}
+	console.log(`stdout: ${stdout}`)
+	console.log(`stderr: ${stderr}`)
+	})
 }
+//CreateStream(25);
