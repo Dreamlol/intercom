@@ -17,12 +17,13 @@ var mqtt_options = {
 
 };
 
-var intercom_url = {
-	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
-	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
-	"get_snapshot":"http://192.168.0.105/api/camera/snapshot?width=640&height=480&source=internal"
-}
-var intercom_request = {
+//var intercom_url = {
+//	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
+//	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
+//	"get_snapshot":"http://192.168.0.105/api/camera/snapshot?width=640&height=480&source=internal"
+//}
+
+var intercom_auth = {
 	'url': null,
 	'user': 'admin',
 	'pass': 'admin',
@@ -81,7 +82,7 @@ client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         console.log("Get message via wss: %s from topic %s", obj, topic)
         if (topic === mqtt_options.topic["answer"] && obj === 1) {
-				url_options_open_door.auth = auth;
+				url_options_open_door.auth = intercom_auth;
                 request.get(url_options_open_door, (err, res, body) => {
                         console.log('statusCode:', res && res.statusCode, "The door was open")
                 })  
@@ -91,18 +92,15 @@ client.on("message", (topic, payload) => {
 			StopRinging()
 		}
         else if(topic === mqtt_options.topic["snapshot"]){
-		//  SendSnapshot();
-			intercom_req.url = intercom_url.get_snapshot;
-			sendRequest(intercom_req)
-			console.log("Snapshot is sending")
+		  SendSnapshot();
 		}
 		//Add get request to stop ringing if client answered
 })      
 
 // Snapshot from camera and sent to client as a picture
 function SendSnapshot(){
-		intercom_req.url = intercom_url.get_snapshot;
-        request.get(intercom_req, (err, res, body) => {
+	url_options_snapshot.auth = intercom_auth;
+        request.get(intercom_auth, (err, res, body) => {
                 console.log('statusCode:', res && res.statusCode)
                 const buf = Buffer.from(body, "base64")
                 client.publish("bridge/intercom_snapshot/value", body)
@@ -111,7 +109,7 @@ function SendSnapshot(){
 }
 
 function StopRinging(){
-		url_options_stop_ringing.auth = auth;
+		url_options_stop_ringing.auth = intercom_auth;
 		request.get(url_options_stop_ringing, (err, res) => {
 			console.log('statusCode:', res && res.statusCode)
 		})
@@ -120,9 +118,3 @@ function StopRinging(){
 //function CreateStream("path to binary file"){
 //
 //}
-
-function sendRequest(ref) {
-	request.get(ref, (req, res, body) => {
-		console.log('statusCode:', res && res.statusCode)
-	})
-}
