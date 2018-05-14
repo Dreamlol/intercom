@@ -85,14 +85,20 @@ app.get('/*', (req, res) => {
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         console.log("Get message via wss: %s from topic %s", obj, topic)
-        if (topic === mqtt_options.topic["answer"] && obj === 1) {
+        if (topic === mqtt_options.topic["switch"] && obj === 1) {
 				url_options_open_door.auth = intercom_auth;
                 request.get(url_options_open_door, (err, res, body) => {
                         console.log('statusCode:', res && res.statusCode, "The door was open")
                 })  
 		}
-		else if(topic === mqtt_options.topic["answer"] && obj === 2){
+		//Begin streaming
+		else if(topic === mqtt_options.topic["answer"] && obj === 1){
 			console.log("Client answered successfuly")
+			//TODO Add stream
+		}
+		//
+		else if(topic === mqtt_options.topic["answer"] && obj === 2){
+			console.log("call rejected")
 			StopRinging()
 		}
         else if(topic === mqtt_options.topic["snapshot"]){
