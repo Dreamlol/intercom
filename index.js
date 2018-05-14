@@ -5,6 +5,7 @@ var http = require('http');
 var exp = require('express');
 var mqtt = require('mqtt');
 var request = require('request');
+var _ = require('lodash');
 
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
@@ -14,9 +15,15 @@ var mqtt_options = {
         port:1883,
         topic:{"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
 
-}
+};
 
-var auth = {
+var intercom_url = {
+	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
+	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
+	"get_snapshot":"http://192.168.0.105/api/camera/snapshot?width=640&height=480&source=internal"
+}
+var intercom_request = {
+	'url': null,
 	'user': 'admin',
 	'pass': 'admin',
 	'sendImmediately': false
@@ -59,7 +66,7 @@ app.get('/*', (req, res) => {
         const body = req.params['0']
         console.log("Somebody wants call to apartaments :", body)
         res.send("OK")
-        // TODO add condition
+        // TODO add condition and security
         try {
         	client.publish("bridge/intercom_call/value", body)
         }
@@ -73,7 +80,7 @@ app.get('/*', (req, res) => {
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         console.log("Get message via wss: %s from topic %s", obj, topic)
-        if (topic === mqtt_options.topic["answer"] && obj === 1 ) {
+        if (topic === mqtt_options.topic["answer"] && obj === 1) {
 				url_options_open_door.auth = auth;
                 request.get(url_options_open_door, (err, res, body) => {
                         console.log('statusCode:', res && res.statusCode, "The door was open")
@@ -84,18 +91,18 @@ client.on("message", (topic, payload) => {
 			StopRinging()
 		}
         else if(topic === mqtt_options.topic["snapshot"]){
-            SendSnapshot();
+		//  SendSnapshot();
+			intercom_req.url = intercom_url.get_snapshot;
+			sendRequest(intercom_req)
+			console.log("Snapshot is sending")
 		}
 		//Add get request to stop ringing if client answered
 })      
 
 // Snapshot from camera and sent to client as a picture
-
-//client.on("message", (topic, payload) => {
-//        const obj = JSON.parse(payload)
 function SendSnapshot(){
-		url_options_snapshot.auth = auth;
-        request.get(url_options_snapshot, (err, res, body) => {
+		intercom_req.url = intercom_url.get_snapshot;
+        request.get(intercom_req, (err, res, body) => {
                 console.log('statusCode:', res && res.statusCode)
                 const buf = Buffer.from(body, "base64")
                 client.publish("bridge/intercom_snapshot/value", body)
@@ -108,4 +115,14 @@ function StopRinging(){
 		request.get(url_options_stop_ringing, (err, res) => {
 			console.log('statusCode:', res && res.statusCode)
 		})
+}
+
+//function CreateStream("path to binary file"){
+//
+//}
+
+function sendRequest(ref) {
+	request.get(ref, (req, res, body) => {
+		console.log('statusCode:', res && res.statusCode)
+	})
 }
