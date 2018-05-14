@@ -13,7 +13,10 @@ var app = exp();
 var mqtt_options = {
 	host:"localhost",
         port:1883,
-        topic:{"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
+		topic:{ "answer":"bridge/intercom_answer/command/set-value", 
+				"snapshot":"bridge/intercom_snapshot/command/set-value",
+				"switch":"bridge/intercom_switch/command/set-value" 
+			}
 
 };
 
@@ -58,7 +61,8 @@ var server = app.listen(8080, () => {
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
         client.subscribe(mqtt_options.topic["answer"]);
-        client.subscribe(mqtt_options.topic["snapshot"]);
+		client.subscribe(mqtt_options.topic["snapshot"]);
+		client.subscribe(mqtt_options.topic["switch"]);
         console.log("Succefully connected to mqtt bridge");
 })
 
@@ -92,8 +96,9 @@ client.on("message", (topic, payload) => {
 			StopRinging()
 		}
         else if(topic === mqtt_options.topic["snapshot"]){
-		  SendSnapshot();
+			SendSnapshot();
 		}
+
 		//Add get request to stop ringing if client answered
 })      
 
