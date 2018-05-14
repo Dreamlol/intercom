@@ -1,26 +1,29 @@
 // Intercom agent
 
 //var bodyParser = require('body-parser')
+var auth = require('http-auth');
 var http = require('http');
 var exp = require('express');
 var mqtt = require('mqtt');
 var request = require('request');
 var _ = require('lodash');
-const { exec } = require('child_process');
+const { exec } = require("child_process");
 
 var app = exp();
 //app.use(bodyParser.urlencoded({ extended: true}));
 //var sub_topics = {"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
 var mqtt_options = {
 	host:"localhost",
-        port:1883,
-		topic:{ "answer":"bridge/intercom_answer/command/set-value", 
-				"snapshot":"bridge/intercom_snapshot/command/set-value",
-				"switch":"bridge/intercom_switch/command/set-value" 
-			}
-
+    port:1883,
+	topic:{ "answer":"bridge/intercom_answer/command/set-value", 
+			"snapshot":"bridge/intercom_snapshot/command/set-value",
+			"switch":"bridge/intercom_switch/command/set-value" 
+	}
 };
-
+var digest = auth.digest({
+	user : 'admin',
+	pass: 'admin'
+});
 //var intercom_url = {
 //	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
 //	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
@@ -61,9 +64,11 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        client.subscribe(mqtt_options.topic["answer"]);
-		client.subscribe(mqtt_options.topic["snapshot"]);
-		client.subscribe(mqtt_options.topic["switch"]);
+	console.log(JSON.stringify(mqtt_options.topic));
+
+//        client.subscribe(mqtt_options.topic["answer"]);
+//		client.subscribe(mqtt_options.topic["snapshot"]);
+//		client.subscribe(mqtt_options.topic["switch"]);
         console.log("Succefully connected to mqtt bridge");
 })
 
@@ -128,12 +133,16 @@ function StopRinging(){
 }
 
 async function CreateStream(peer_id){
-	await exec("./webrtc-sendrecv --peer-id="+peer_id, (err, stdout, stderr) => {
-	if (err) {
-	return
-	}
-	console.log(`stdout: ${stdout}`)
-	console.log(`stderr: ${stderr}`)
-	})
+	const stdout = await exec('./webrtc-sendrecv --peer-id=%s', peer_id)
+	console.log(stdout)
 }
-//CreateStream(25);
+
+function CreateStream(peer_id){
+	exec('./webrtc-sendrecv --peer-id=%s', peer_id, (err, stdout, stderr) => {
+		if (err) {
+		return;
+		}
+		console.log(`stdout: ${stdout}`);
+		console.log(`stderr: ${stderr}`);
+		})
+}
