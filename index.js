@@ -64,7 +64,9 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        client.subscribe(Object.values(mqtt_options.topic));
+        client.subscribe(Object.values(mqtt_options.topic, (err, granted) => {
+		console.log(granted)
+	}));
         console.log("Succefully connected to mqtt bridge");
 })
 
