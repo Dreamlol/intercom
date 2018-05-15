@@ -90,7 +90,8 @@ client.on("message", (topic, payload) => {
         if (topic === mqtt_options.topic["switch"] && obj === 1) {
 				url_options_open_door.auth = intercom_auth;
                 		request.get(url_options_open_door, (err, res, body) => {
-                        	console.log('statusCode:', res && res.statusCode, "The door was open")
+				console.log('statusCode:', res && res.statusCode, "The door was open")
+				StopRinging()
                 })  
 		}
 		//Begin streaming
@@ -128,17 +129,20 @@ function StopRinging(){
 		})
 }
 
-async function CreateStream(peer_id){
-	const stdout = await exec('./webrtc-sendrecv --peer-id=%s', peer_id)
-	console.log(stdout)
+function CreateStream(peer_id){
+
+        const webrtc_bin = exec(`./webrtc-sendrecv --peer-id=${peer_id}`);
+
+        webrtc_bin.stdout.on( 'data', data => {
+            console.log( `stdout: ${data}` );
+        });
+
+        webrtc_bin.stderr.on( 'data', data => {
+            console.log( `stderr: ${data}` );
+        });
+
+        webrtc_bin.on('close', code => {
+            console.log( `child process exited with code ${code}`);
+        });
 }
 
-async function CreateStream(peer_id){
-	await exec('./webrtc-sendrecv --peer-id=%s', peer_id, (err, stdout, stderr) => {
-		if (err) {
-			return;
-		}
-		console.log(`stdout: ${stdout}`);
-		console.log(`stderr: ${stderr}`);
-	})
-}
