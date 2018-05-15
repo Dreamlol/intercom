@@ -16,8 +16,8 @@ var mqtt_options = {
 	host:"localhost",
     port:1883,
 	topic:{ "answer":"bridge/intercom_answer/command/set-value", 
-			"snapshot":"bridge/intercom_snapshot/command/set-value",
-			"switch":"bridge/intercom_switch/command/set-value" 
+		"snapshot":"bridge/intercom_snapshot/command/set-value",
+		"switch":"bridge/intercom_switch/command/set-value" 
 	}
 };
 var digest = auth.digest({
@@ -64,9 +64,7 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        client.subscribe(mqtt_options.topic["answer"],
-			mqtt_options.topic["snapshot"],
-			mqtt_options.topic["switch"]);
+        client.subscribe(Object.values(mqtt_options.topic));
         console.log("Succefully connected to mqtt bridge");
 })
 
