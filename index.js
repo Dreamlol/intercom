@@ -11,7 +11,7 @@ const { exec } = require("child_process");
 
 var app = exp();
 
-app.use(auth.connect(digest);
+app.use(auth.connect(digest));
 
 var mqtt_options = {
 	host:"localhost",
@@ -66,7 +66,7 @@ var server = app.listen(8080, () => {
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
         client.subscribe(Object.values(mqtt_options.topic), (err, granted) => {
-		console.log(`Subcribed on next public: ${granted}`)
+		console.log(`Subcribed on next public: ${JSON.stringify(granted)}`)
 	});
         console.log("Succefully connected to mqtt bridge");
 })
