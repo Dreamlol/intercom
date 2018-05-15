@@ -10,8 +10,9 @@ var _ = require('lodash');
 const { exec } = require("child_process");
 
 var app = exp();
-//app.use(bodyParser.urlencoded({ extended: true}));
-//var sub_topics = {"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
+
+app.use(auth.connect(digest);
+
 var mqtt_options = {
 	host:"localhost",
     port:1883,
@@ -64,9 +65,9 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        client.subscribe(Object.values(mqtt_options.topic, (err, granted) => {
-		console.log(granted)
-	}));
+        client.subscribe(Object.values(mqtt_options.topic), (err, granted) => {
+		console.log(`Subcribed on next public: ${granted}`)
+	});
         console.log("Succefully connected to mqtt bridge");
 })
 
