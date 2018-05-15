@@ -93,8 +93,8 @@ client.on("message", (topic, payload) => {
         console.log("Get message via wss: %s from topic %s", obj, topic)
         if (topic === mqtt_options.topic["switch"] && obj === 1) {
 				url_options_open_door.auth = intercom_auth;
-                request.get(url_options_open_door, (err, res, body) => {
-                        console.log('statusCode:', res && res.statusCode, "The door was open")
+                		request.get(url_options_open_door, (err, res, body) => {
+                        	console.log('statusCode:', res && res.statusCode, "The door was open")
                 })  
 		}
 		//Begin streaming
@@ -107,7 +107,7 @@ client.on("message", (topic, payload) => {
 			console.log("call rejected")
 			StopRinging()
 		}
-        else if(topic === mqtt_options.topic["snapshot"]){
+       		else if(topic === mqtt_options.topic["snapshot"]){
 			SendSnapshot();
 		}
 
@@ -128,7 +128,7 @@ function SendSnapshot(){
 function StopRinging(){
 		url_options_stop_ringing.auth = intercom_auth;
 		request.get(url_options_stop_ringing, (err, res) => {
-			console.log('statusCode:', res && res.statusCode)
+			console.log('statusCode:', res && res.statusCode, "Stop ringing")
 		})
 }
 
@@ -137,12 +137,12 @@ async function CreateStream(peer_id){
 	console.log(stdout)
 }
 
-function CreateStream(peer_id){
-	exec('./webrtc-sendrecv --peer-id=%s', peer_id, (err, stdout, stderr) => {
+async function CreateStream(peer_id){
+	await exec('./webrtc-sendrecv --peer-id=%s', peer_id, (err, stdout, stderr) => {
 		if (err) {
-		return;
+			return;
 		}
 		console.log(`stdout: ${stdout}`);
 		console.log(`stderr: ${stderr}`);
-		})
+	})
 }
