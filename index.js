@@ -66,12 +66,13 @@ var server = app.listen(8080, () => {
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
         client.subscribe(Object.values(mqtt_options.topic), (err, granted) => {
-		console.log(`Subcribed on next public: ${JSON.stringify(granted)}`)
+		console.log(`Subcribed on next topic: ${JSON.stringify(granted)}`)
 	});
         console.log("Succefully connected to mqtt bridge");
 })
 
 // Main function to handle GET request and call to client
+// TODO : TODO add certificate security and login/pass authentification
 app.get('/*', (req, res) => {
         const body = req.params['0']
         console.log("Somebody wants call to apartaments :", body)
@@ -86,7 +87,7 @@ app.get('/*', (req, res) => {
 })
 
 // Recieve message from client and send https request in order to switch door and goint to stream video/audio
-// TODO add certificate security and login/pass autorisation
+// 
 client.on("message", (topic, payload) => {
         const obj = JSON.parse(payload)
         console.log("Get message via wss: %s from topic %s", obj, topic)
@@ -100,7 +101,7 @@ client.on("message", (topic, payload) => {
 		//Begin streaming
 		else if(topic === mqtt_options.topic["answer"] && obj === 1){
 			console.log("Client answered successfuly")
-			//TODO Add stream
+			CreateStream("634555")
 		}
 		//
 		else if(topic === mqtt_options.topic["answer"] && obj === 2){
@@ -134,7 +135,7 @@ function StopRinging(){
 
 function CreateStream(peer_id){
 
-        const webrtc_bin = exec(`./webrtc-sendrecv --peer-id=${peer_id}`);
+        const webrtc_bin = exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
 
         webrtc_bin.stdout.on( 'data', data => {
             console.log( `stdout: ${data}` );
