@@ -1,7 +1,7 @@
 // Intercom agent
 
 //var bodyParser = require('body-parser')
-var auth = require('http-auth');
+//var auth = require('http-auth');
 var http = require('http');
 var exp = require('express');
 var mqtt = require('mqtt');
@@ -11,7 +11,7 @@ const { exec } = require("child_process");
 
 var app = exp();
 
-app.use(auth.connect(digest));
+//app.use(auth.connect(digest));
 
 var mqtt_options = {
 	host:"localhost",
@@ -21,10 +21,10 @@ var mqtt_options = {
 		"switch":"bridge/intercom_switch/command/set-value" 
 	}
 };
-var digest = auth.digest({
-	user : 'admin',
-	pass: 'admin'
-});
+//var digest = auth.digest({
+//	user : 'admin',
+//	pass: 'admin'
+//});
 //var intercom_url = {
 //	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
 //	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
@@ -133,9 +133,9 @@ function StopRinging(){
 		})
 }
 
-function CreateStream(peer_id){
+async function CreateStream(peer_id){
 
-        const webrtc_bin = exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
+        const webrtc_bin = await exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
 
         webrtc_bin.stdout.on( 'data', data => {
             console.log( `stdout: ${data}` );
