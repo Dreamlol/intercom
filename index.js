@@ -99,9 +99,10 @@ client.on("message", (topic, payload) => {
                 })  
 		}
 		//Begin streaming
-		else if(topic === mqtt_options.topic["answer"] && obj === 1){
+		else if(topic === mqtt_options.topic["answer"] && obj === "H264"){
 			console.log("Client answered successfuly")
-			CreateStream("634555")
+			CreateStream("634555", obj)
+			StopRinging()
 		}
 		//
 		else if(topic === mqtt_options.topic["answer"] && obj === 2){
@@ -126,17 +127,23 @@ function SendSnapshot(){
         })      
 }
 
-function StopRinging(){
-		url_options_stop_ringing.auth = intercom_auth;
-		request.get(url_options_stop_ringing, (err, res) => {
-			console.log('statusCode:', res && res.statusCode, "Stop ringing")
-		})
+async function StopRinging(){
+		await (() => {
+			url_options_stop_ringing.auth = intercom_auth;
+			request.get(url_options_stop_ringing, (err, res) => {
+				console.log('statusCode:', res && res.statusCode, "Stop ringing")
+			})
+		})();
+		
 }
 
-async function CreateStream(peer_id){
-
-        const webrtc_bin = await exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
-
+async function CreateStream(peer_id, codec){
+	if(codec === "H264"){
+        	const webrtc_bin = await exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
+	}
+	else if(codec === "VP8"){
+		const webrtc_bin = await exec(`./webrtc-sendrecv_vp8 --peer-id=${peer_id}`);
+	}
         webrtc_bin.stdout.on( 'data', data => {
             console.log( `stdout: ${data}` );
         });
