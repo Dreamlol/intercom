@@ -1,25 +1,32 @@
 // Intercom agent
 
 //var bodyParser = require('body-parser')
+//var auth = require('http-auth');
 var http = require('http');
 var exp = require('express');
 var mqtt = require('mqtt');
 var request = require('request');
 var _ = require('lodash');
+const { exec } = require("child_process");
 
 var app = exp();
-//app.use(bodyParser.urlencoded({ extended: true}));
-//var sub_topics = {"answer":"bridge/intercom_answer/command/set-value", "snapshot":"bridge/intercom_snapshot/command/set-value"}
+
+//app.use(auth.connect(digest));
+
 var mqtt_options = {
 	host:"localhost",
-        port:1883,
-		topic:{ "answer":"bridge/intercom_answer/command/set-value", 
-				"snapshot":"bridge/intercom_snapshot/command/set-value",
-				"switch":"bridge/intercom_switch/command/set-value" 
-			}
-
+    port:1883,
+	topic:{
+//		"answer":"bridge/intercom_answer/command/set-value",
+//		"snapshot":"bridge/intercom_snapshot/command/set-value",
+//		"switch":"bridge/intercom_switch/command/set-value",
+		"open":"bridge/intercom_call/command/open"
+	}
 };
-
+//var digest = auth.digest({
+//	user : 'admin',
+//	pass: 'admin'
+//});
 //var intercom_url = {
 //	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
 //	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
@@ -60,13 +67,14 @@ var server = app.listen(8080, () => {
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
 client.on("connect", () => {
-        client.subscribe(mqtt_options.topic["answer"]);
-		client.subscribe(mqtt_options.topic["snapshot"]);
-		client.subscribe(mqtt_options.topic["switch"]);
+        client.subscribe(Object.values(mqtt_options.topic), (err, granted) => {
+		console.log(`Subcribed on next topic: ${JSON.stringify(granted)}`)
+	});
         console.log("Succefully connected to mqtt bridge");
 })
 
 // Main function to handle GET request and call to client
+// TODO : TODO add certificate security and login/pass authentification
 app.get('/*', (req, res) => {
         const body = req.params['0']
         console.log("Somebody wants call to apartaments :", body)
@@ -81,32 +89,61 @@ app.get('/*', (req, res) => {
 })
 
 // Recieve message from client and send https request in order to switch door and goint to stream video/audio
-// TODO add certificate security and login/pass autorisation
+//
 client.on("message", (topic, payload) => {
-        const obj = JSON.parse(payload)
-        console.log("Get message via wss: %s from topic %s", obj, topic)
-        if (topic === mqtt_options.topic["switch"] && obj === 1) {
+        if (topic === mqtt_options.topic["open"]) {
+	        const obj = JSON.parse(payload);
+        	console.log("Get message via wss: %s from topic %s", obj.call, topic);
+		switch(obj.call || obj.codec || obj.switch){
+			case "h264" : {
+				CreateStream("634555", 264);
+				StopRinging();
+				break;
+			}
+			case "vp8" : {
+				CreateStream("634555", 8);
+				StopRinging();
+				break;
+			}
+			case "open" : {
 				url_options_open_door.auth = intercom_auth;
-                request.get(url_options_open_door, (err, res, body) => {
-                        console.log('statusCode:', res && res.statusCode, "The door was open")
-                })  
-		}
+                		request.get(url_options_open_door, (err, res, body) => {
+				        console.log('statusCode:', res && res.statusCode, "The door was open");
+				});
+				StopRinging();
+				break;
+			}
+			case "reject" :
+				StopRinging();
+			}
+	}
+});
+
+//
+//				url_options_open_door.auth = intercom_auth;
+//              		request.get(url_options_open_door, (err, res, body) => {
+//				console.log('statusCode:', res && res.statusCode, "The door was open")
+//				StopRinging()
+  //              })
+//		}
 		//Begin streaming
-		else if(topic === mqtt_options.topic["answer"] && obj === 1){
-			console.log("Client answered successfuly")
-			//TODO Add stream
-		}
+//		else if((topic === mqtt_options.topic["answer"] && obj === 264) || (topic === mqtt_options.topic["answer"] && obj === 8)){
+//			console.log("Client answered successfuly")
+//			CreateStream("634555", obj)
+//			StopRinging()
+//		}
 		//
-		else if(topic === mqtt_options.topic["answer"] && obj === 2){
-			console.log("call rejected")
-			StopRinging()
-		}
-        else if(topic === mqtt_options.topic["snapshot"]){
-			SendSnapshot();
-		}
+//		else if(topic === mqtt_options.topic["answer"] && obj === 2){
+//			console.log("call rejected")
+//			StopRinging()
+//		}
+  //     		else if(topic === mqtt_options.topic["snapshot"]){
+//			SendSnapshot();
+//		}
 
 		//Add get request to stop ringing if client answered
-})      
+//})
+
 
 // Snapshot from camera and sent to client as a picture
 function SendSnapshot(){
@@ -116,16 +153,48 @@ function SendSnapshot(){
                 const buf = Buffer.from(body, "base64")
                 client.publish("bridge/intercom_snapshot/value", body)
                 console.log("Snapshot is sending");
-        })      
+        })
 }
 
-function StopRinging(){
-		url_options_stop_ringing.auth = intercom_auth;
-		request.get(url_options_stop_ringing, (err, res) => {
-			console.log('statusCode:', res && res.statusCode)
-		})
+async function StopRinging(){
+		await (() => {
+			url_options_stop_ringing.auth = intercom_auth;
+			request.get(url_options_stop_ringing, (err, res) => {
+				console.log('statusCode:', res && res.statusCode, "Stop ringing")
+			})
+		})();
+
 }
 
-//function CreateStream("path to binary file"){
-//
-//}
+async function CreateStream(peer_id, codec){
+        if(codec === 264){
+                const webrtc_bin = await exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
+
+                webrtc_bin.stdout.on( 'data', data => {
+                console.log( `stdout: ${data}` );
+                 });
+
+                webrtc_bin.stderr.on( 'data', data => {
+                console.log( `stderr: ${data}` );
+                });
+
+                webrtc_bin.on('close', code => {
+                    console.log( `child process exited with code ${code}`);
+                });
+                }
+        else if(codec === 8){
+                const webrtc_bin = await exec(`./webrtc-sendrecv_vp8 --peer-id=${peer_id}`);
+
+                webrtc_bin.stdout.on( 'data', data => {
+                    console.log( `stdout: ${data}` );
+                });
+
+                webrtc_bin.stderr.on( 'data', data => {
+                    console.log( `stderr: ${data}` );
+                });
+
+                webrtc_bin.on('close', code => {
+                console.log( `child process exited with code ${code}`);
+        });
+        }
+}
