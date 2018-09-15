@@ -16,20 +16,10 @@ var app = exp();
 var mqtt_options = {
 	host:"localhost",
     port:1883,
-	topic:{ "answer":"bridge/intercom_answer/command/set-value", 
-		"snapshot":"bridge/intercom_snapshot/command/set-value",
-		"switch":"bridge/intercom_switch/command/set-value" 
+	topic:{
+		"open":"bridge/intercom_call/command/open"
 	}
 };
-//var digest = auth.digest({
-//	user : 'admin',
-//	pass: 'admin'
-//});
-//var intercom_url = {
-//	"stop_ringing": "http://192.168.0.105/enu/trigger/stop_ringing" ,
-//	"open_door":"http://192.168.0.105/api/switch/ctrl?switch=1&action=on",
-//	"get_snapshot":"http://192.168.0.105/api/camera/snapshot?width=640&height=480&source=internal"
-//}
 
 var intercom_auth = {
 	'url': null,
@@ -48,7 +38,7 @@ var url_options_open_door = {
         'url': 'http://192.168.0.105/api/switch/ctrl?switch=1&action=on',
         'auth': null
 	};
-
+// URL fot stop ringing in answer or timeout call
 var url_options_stop_ringing = {
     'url': 'http://192.168.0.105/enu/trigger/stop_ringing',
     'auth': null
@@ -64,7 +54,7 @@ var server = app.listen(8080, () => {
 
 // Connect to local mqtt broker
 var client = mqtt.connect(mqtt_options)
-client.on("connect", () => {
+	client.on("connect", () => {
         client.subscribe(Object.values(mqtt_options.topic), (err, granted) => {
 		console.log(`Subcribed on next topic: ${JSON.stringify(granted)}`)
 	});
@@ -74,12 +64,12 @@ client.on("connect", () => {
 // Main function to handle GET request and call to client
 // TODO : TODO add certificate security and login/pass authentification
 app.get('/*', (req, res) => {
-        const body = req.params['0']
-        console.log("Somebody wants call to apartaments :", body)
+        const body = JSON.stringify({"apartment":req.params['0']});
+        console.log("Somebody wants call to apartaments :", body);
         res.send("OK")
         // TODO add condition and security
         try {
-        	client.publish("bridge/intercom_call/value", body)
+        	client.publish("bridge/intercom_call/value", body.toString())
         }
         catch (err) {
         	console.log(err)
@@ -87,34 +77,38 @@ app.get('/*', (req, res) => {
 })
 
 // Recieve message from client and send https request in order to switch door and goint to stream video/audio
-// 
+//
 client.on("message", (topic, payload) => {
-        const obj = JSON.parse(payload)
-        console.log("Get message via wss: %s from topic %s", obj, topic)
-        if (topic === mqtt_options.topic["switch"] && obj === 1) {
+        if (topic === mqtt_options.topic["open"]) {
+                const str = JSON.parse(payload)
+                console.log(str);
+        	console.log("Get message via wss: %s from topic %s", str, topic);
+		switch(str.body.call || str.body.codec || str.body.switch){
+			case "264" : {
+				CreateStream("634555", 264);
+				StopRinging();
+				break;
+			}
+			case "8" : {
+				CreateStream("634555", 8);
+				StopRinging();
+				break;
+			}
+			case "open" : {
 				url_options_open_door.auth = intercom_auth;
                 		request.get(url_options_open_door, (err, res, body) => {
-				console.log('statusCode:', res && res.statusCode, "The door was open")
-				StopRinging()
-                })  
-		}
-		//Begin streaming
-		else if(topic === mqtt_options.topic["answer"] && obj === "H264"){
-			console.log("Client answered successfuly")
-			CreateStream("634555", obj)
-			StopRinging()
-		}
-		//
-		else if(topic === mqtt_options.topic["answer"] && obj === 2){
-			console.log("call rejected")
-			StopRinging()
-		}
-       		else if(topic === mqtt_options.topic["snapshot"]){
-			SendSnapshot();
-		}
+				        console.log('statusCode:', res && res.statusCode, "The door was open");
+				});
+				StopRinging();
+				break;
+			}
+			case "reject" : {
+				StopRinging();
+			}
+	}
+}
+});
 
-		//Add get request to stop ringing if client answered
-})      
 
 // Snapshot from camera and sent to client as a picture
 function SendSnapshot(){
@@ -124,9 +118,9 @@ function SendSnapshot(){
                 const buf = Buffer.from(body, "base64")
                 client.publish("bridge/intercom_snapshot/value", body)
                 console.log("Snapshot is sending");
-        })      
+        })
 }
-
+//Add get request to stop ringing if client answered
 async function StopRinging(){
 		await (() => {
 			url_options_stop_ringing.auth = intercom_auth;
@@ -134,26 +128,38 @@ async function StopRinging(){
 				console.log('statusCode:', res && res.statusCode, "Stop ringing")
 			})
 		})();
-		
+
 }
 
 async function CreateStream(peer_id, codec){
-	if(codec === "H264"){
-        	const webrtc_bin = await exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
-	}
-	else if(codec === "VP8"){
-		const webrtc_bin = await exec(`./webrtc-sendrecv_vp8 --peer-id=${peer_id}`);
-	}
-        webrtc_bin.stdout.on( 'data', data => {
-            console.log( `stdout: ${data}` );
-        });
+        if(codec === 264){
+                const webrtc_bin = await exec(`./webrtc-sendrecv_g722 --peer-id=${peer_id}`);
 
-        webrtc_bin.stderr.on( 'data', data => {
-            console.log( `stderr: ${data}` );
-        });
+                webrtc_bin.stdout.on( 'data', data => {
+                console.log( `stdout: ${data}` );
+                 });
 
-        webrtc_bin.on('close', code => {
-            console.log( `child process exited with code ${code}`);
+                webrtc_bin.stderr.on( 'data', data => {
+                console.log( `stderr: ${data}` );
+                });
+
+                webrtc_bin.on('close', code => {
+                    console.log( `child process exited with code ${code}`);
+                });
+                }
+        else if(codec === 8){
+                const webrtc_bin = await exec(`./webrtc-sendrecv_vp8 --peer-id=${peer_id}`);
+
+                webrtc_bin.stdout.on( 'data', data => {
+                    console.log( `stdout: ${data}` );
+                });
+
+                webrtc_bin.stderr.on( 'data', data => {
+                    console.log( `stderr: ${data}` );
+                });
+
+                webrtc_bin.on('close', code => {
+                console.log( `child process exited with code ${code}`);
         });
+        }
 }
-
