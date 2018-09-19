@@ -64,18 +64,26 @@ var client = mqtt.connect(mqtt_options)
 // Main function to handle GET request and call to client
 // TODO : TODO add certificate security and login/pass authentification
 app.get('/*', (req, res) => {
-        const body = JSON.stringify({"apartment":req.params['0']});
-        console.log("Somebody wants call to apartaments :", body);
-        res.send("OK")
+//        const body = JSON.stringify({"apartment":req.params['0']});
+        const body = req.params['0'];
+        console.log("Somebody wants call to apartaments :", body.toString());
+        res.send("OK");
+	console.log(body);
         // TODO add condition and security
-        try {
-        	client.publish("bridge/intercom_call/value", body.toString())
-        }
-        catch (err) {
-        	console.log(err)
-        }
+	if (body.toString() === "stopring"){
+		StopRinging();
+	}
+	else {
+        	try {
+			StartRinging();
+			const apartment = JSON.stringify({"apartment":req.params['0']});
+        		client.publish("bridge/intercom_call/value", apartment.toString());
+        	}
+        	catch (err) {
+        		console.log(err);
+       		}
+	}
 })
-
 // Recieve message from client and send https request in order to switch door and goint to stream video/audio
 //
 client.on("message", (topic, payload) => {
@@ -122,13 +130,8 @@ function SendSnapshot(){
 }
 //Add get request to stop ringing if client answered
 async function StopRinging(){
-		await (() => {
-			url_options_stop_ringing.auth = intercom_auth;
-			request.get(url_options_stop_ringing, (err, res) => {
-				console.log('statusCode:', res && res.statusCode, "Stop ringing")
-			})
-		})();
-
+	const stop = await exec(`killall gst-launch-1.0`);
+	console.log("Call rejected");
 }
 
 async function CreateStream(peer_id, codec){
@@ -163,3 +166,20 @@ async function CreateStream(peer_id, codec){
         });
         }
 }
+
+async function StartRinging(){
+    const ring = await exec(`gst-launch-1.0 -v filesrc location=./drake_in_my_feelings.wav ! wavparse ! audioconvert ! audioresample ! avenc_g722 ! rtpg722pay  ! udpsink host=192.168.0.105 port=5000`);
+
+    ring.stdout.on( 'data', data => {
+        console.log( `stdout: ${data}` );
+    });
+
+    ring.stderr.on( 'data', data => {
+        console.log( `stderr: ${data}` );
+    });
+
+    ring.on('close', code => {
+        console.log( `child process exited with code ${code}`);
+    });
+}
+
